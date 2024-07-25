@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Encrypting</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            overflow: auto; /* Allow scroll on the body */
+        }
+        .container {
+            background-color: #1f1f1f;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.7);
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto; /* Center container */
+            border: 2px solid rgba(255, 0, 255, 0.8); /* RGB Border */
+        }
+        .section {
+            display: none;
+            padding-right: 15px; /* Adding space for scrollbar */
+            height: auto; /* Allow height to grow with content */
+            overflow-y: auto; /* Allow scroll if content overflows */
+            box-sizing: border-box;
+        }
+        .section.active {
+            display: block;
+        }
+        .section h2 {
+            border-bottom: 3px solid #6200ea;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        input, button {
+            width: calc(100% - 22px);
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #333;
+            border-radius: 8px;
+            background-color: #2a2a2a;
+            color: #e0e0e0;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #6200ea;
+            color: #ffffff;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+        button:hover {
+            background-color: #3700b3;
+            transform: scale(1.05);
+        }
+        button:focus {
+            outline: none;
+        }
+        .output {
+            margin: 10px 0;
+            padding: 12px;
+            background-color: #333;
+            border-radius: 8px;
+            word-break: break-word;
+            position: relative;
+        }
+        .copy-btn {
+            background-color: #03dac5;
+            margin-left: 10px;
+        }
+        .copy-btn:hover {
+            background-color: #018786;
+        }
+        .copy-btn.copied {
+            background-color: #00c853;
+        }
+        .copy-btn:focus {
+            outline: none;
+        }
+        #captcha-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+        #captcha-image {
+            display: block;
+            margin: 0 auto;
+            border: 1px solid #333;
+            padding: 10px;
+            background-color: #fff;
+        }
+        #captcha-input {
+            margin-top: 10px;
+            padding: 12px;
+        }
+        #captcha-status {
+            color: #ff0000;
+            margin-top: 10px;
+        }
+        #main-content {
+            display: none;
+        }
+        .button-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+        .button-container button {
+            width: 100%;
+            max-width: 200px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- CAPTCHA Section -->
+        <div id="captcha-container">
+            <h1>Verify You're Not a Robot</h1>
+            <canvas id="captcha-image" width="200" height="100"></canvas>
+            <input type="text" id="captcha-input" placeholder="Enter CAPTCHA text" />
+            <button onclick="verifyCaptcha()">Submit</button>
+            <p id="captcha-status"></p>
+        </div>
+
+        <!-- Main Content (hidden initially) -->
+        <div id="main-content">
+            <h1>Simple Encrypting</h1>
+            <!-- Sections -->
+            <div class="section" id="encrypt-section">
+                <h2>Encrypt</h2>
+                <input type="text" id="encrypt-message" placeholder="Enter message to encrypt" />
+                <input type="text" id="encrypt-key" placeholder="Enter 256-bit key (hex)" />
+                <button onclick="encryptMessage()">Encrypt</button>
+                <div>
+                    <span>Encrypted Message:</span>
+                    <div id="encryptedMessage" class="output"></div>
+                    <button class="copy-btn" onclick="copyToClipboard('encryptedMessage', this)">Copy Encrypted</button>
+                </div>
+                <div>
+                    <span>IV:</span>
+                    <div id="iv" class="output"></div>
+                    <button class="copy-btn" onclick="copyToClipboard('iv', this)">Copy IV</button>
+                </div>
+            </div>
+            
+            <div class="section" id="decrypt-section">
+                <h2>Decrypt</h2>
+                <input type="text" id="decrypt-key" placeholder="Enter 256-bit key (hex)" />
+                <input type="text" id="decrypt-encrypted-message" placeholder="Enter encrypted message" />
+                <input type="text" id="decrypt-iv" placeholder="Enter IV" />
+                <button onclick="decryptMessage()">Decrypt</button>
+                <div>
+                    <span>Decrypted Message:</span>
+                    <div id="decryptedMessage" class="output"></div>
+                    <button class="copy-btn" onclick="copyToClipboard('decryptedMessage', this)">Copy Decrypted</button>
+                </div>
+            </div>
+            
+            <div class="section" id="hexGen-section">
+                <h2>Hex Generator</h2>
+                <input type="number" id="hexLength" placeholder="Enter length for hex (in bytes)" min="1" />
+                <button onclick="generateHex()">Generate Hex</button>
+                <div>
+                    <span>Generated Hex:</span>
+                    <div id="generatedHex" class="output"></div>
+                    <button class="copy-btn" onclick="copyToClipboard('generatedHex', this)">Copy Hex</button>
+                </div>
+            </div>
+            
+            <div class="section" id="help-section">
+                <h2>Help</h2>
+                <p>Welcome to Simple Encrypting! This tool allows you to encrypt and decrypt messages using AES-256 encryption, as well as generate random hexadecimal strings. Here's how to use each section:</p>
+                <h3>Encrypt</h3>
+                <ul>
+                    <li>Enter the message you want to encrypt in the "Enter message to encrypt" field.</li>
+                    <li>Provide a 256-bit key in hexadecimal format in the "Enter 256-bit key (hex)" field.</li>
+                    <li>Click the "Encrypt" button to encrypt the message.</li>
+                    <li>The encrypted message and the initialization vector (IV) will be displayed. You can copy these values using the provided buttons.</li>
+                </ul>
+                <h3>Decrypt</h3>
+                <ul>
+                    <li>Paste the encrypted message into the "Enter encrypted message" field.</li>
+                    <li>Enter the same 256-bit key (in hexadecimal format) that was used for encryption in the "Enter 256-bit key (hex)" field.</li>
+                    <li>Paste the initialization vector (IV) used during encryption in the "Enter IV" field.</li>
+                    <li>Click the "Decrypt" button to decrypt the message.</li>
+                    <li>Let the decrypted message be displayed, and you can copy it using the provided button.</li>
+                </ul>
+                <h3>Hex Generator</h3>
+                <ul>
+                    <li>Enter the length for the hexadecimal string in bytes in the "Enter length for hex (in bytes)" field.</li>
+                    <li>Click the "Generate Hex" button to produce a random hexadecimal string of the specified length.</li>
+                    <li>The generated hex string will be displayed, and you can copy it using the provided button.</li>
+                </ul>
+            </div>
+
+            <!-- Buttons -->
+            <div class="button-container">
+                <button onclick="navigateToSection('encrypt')">Encrypt</button>
+                <button onclick="navigateToSection('decrypt')">Decrypt</button>
+                <button onclick="navigateToSection('hexGen')">Hex Generator</button>
+                <button onclick="navigateToSection('help')">Help</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script>
+        function generateCaptcha() {
+            const canvas = document.getElementById('captcha-image');
+            const ctx = canvas.getContext('2d');
+            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let captchaText = '';
+            for (let i = 0; i < 6; i++) {
+                captchaText += characters.charAt(Math.floor(Math.random() * characters.length));
+            }
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = '30px Arial';
+            ctx.fillStyle = '#000';
+            ctx.textAlign = 'center';
+            ctx.fillText(captchaText, canvas.width / 2, canvas.height / 2);
+            return captchaText;
+        }
+
+        function verifyCaptcha() {
+            const input = document.getElementById('captcha-input').value;
+            if (input === captchaText) {
+                localStorage.setItem('captchaVerified', 'true');
+                document.getElementById('captcha-container').style.display = 'none';
+                document.getElementById('main-content').style.display = 'block';
+                document.getElementById('captcha-status').innerText = '';
+            } else {
+                document.getElementById('captcha-status').innerText = 'Incorrect CAPTCHA. Please try again.';
+                captchaText = generateCaptcha(); // Generate a new CAPTCHA
+            }
+        }
+
+        let captchaText = generateCaptcha();
+
+        function navigateToSection(section) {
+            const sections = ['encrypt', 'decrypt', 'hexGen', 'help'];
+            sections.forEach(sec => {
+                document.getElementById(`${sec}-section`).classList.toggle('active', section === sec);
+            });
+
+            // Update URL without reloading
+            history.pushState(null, '', `/${section}`);
+        }
+
+        function handleURLChange() {
+            const path = window.location.pathname.replace('/', '');
+            if (['encrypt', 'decrypt', 'hexGen', 'help'].includes(path)) {
+                navigateToSection(path);
+            } else {
+                navigateToSection('encrypt'); // Default to 'encrypt' if no valid section is found
+            }
+        }
+
+        window.addEventListener('popstate', handleURLChange);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (localStorage.getItem('captchaVerified') !== 'true') {
+                document.getElementById('captcha-container').style.display = 'block';
+                document.getElementById('main-content').style.display = 'none';
+            } else {
+                document.getElementById('main-content').style.display = 'block';
+                document.getElementById('captcha-container').style.display = 'none';
+            }
+            handleURLChange();
+        });
+
+        function encryptMessage() {
+            const message = document.getElementById('encrypt-message').value;
+            const keyHex = document.getElementById('encrypt-key').value;
+            
+            const key = CryptoJS.enc.Hex.parse(keyHex);
+            const iv = CryptoJS.lib.WordArray.random(16); // Generate a random IV
+            
+            const encrypted = CryptoJS.AES.encrypt(message, key, {
+                iv: iv,
+                mode: CryptoJS.mode.CBC,
+                padding: CryptoJS.pad.Pkcs7
+            });
+
+            document.getElementById('encryptedMessage').innerText = encrypted.toString();
+            document.getElementById('iv').innerText = iv.toString(CryptoJS.enc.Hex);
+            document.getElementById('decryptedMessage').innerText = '';
+        }
+
+        function decryptMessage() {
+            const encryptedMessage = document.getElementById('decrypt-encrypted-message').value;
+            const keyHex = document.getElementById('decrypt-key').value;
+            const ivHex = document.getElementById('decrypt-iv').value;
+
+            const key = CryptoJS.enc.Hex.parse(keyHex);
+            const iv = CryptoJS.enc.Hex.parse(ivHex);
+            
+            const decrypted = CryptoJS.AES.decrypt(encryptedMessage, key, {
+                iv: iv,
+                mode: CryptoJS.mode.CBC,
+                padding: CryptoJS.pad.Pkcs7
+            });
+
+            const decryptedMessage = decrypted.toString(CryptoJS.enc.Utf8);
+            document.getElementById('decryptedMessage').innerText = decryptedMessage;
+        }
+
+        function generateHex() {
+            const length = parseInt(document.getElementById('hexLength').value) || 0;
+            if (length <= 0) {
+                alert('Please enter a valid length');
+                return;
+            }
+            
+            const hex = CryptoJS.lib.WordArray.random(length).toString(CryptoJS.enc.Hex);
+            document.getElementById('generatedHex').innerText = hex;
+        }
+
+        function copyToClipboard(id, btn) {
+            const text = document.getElementById(id).innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                btn.innerText = 'Copied!';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.innerText = 'Copy';
+                    btn.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                alert('Failed to copy: ' + err);
+            });
+        }
+    </script>
+</body>
+</html>
